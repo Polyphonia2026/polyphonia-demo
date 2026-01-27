@@ -1,0 +1,10 @@
+{
+    "prompt": {
+        "Original Prompt": "A recording of a soulful female vocals, a deep bass, a clean electric guitar, a warm acoustic guitar and punchy drums.",
+        "Baseline Prompt": "A recording of a smooth saxophone, a deep bass, a clean electric guitar, a warm acoustic guitar and punchy drums.",
+        "Vocals Softmask Prompt": "a smooth saxophone",
+        "Bass Softmask Prompt": "a deep bass",
+        "Drums Softmask Prompt": "punchy drums",
+        "Others Softmask Prompt": "a clean electric guitar"
+    }
+}

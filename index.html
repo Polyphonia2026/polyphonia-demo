@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polyphonia: Training-Free Music Editing Guided by Attention Probing in Diffusion Models</title>
+
+  <!-- Fonts: Using Inter for its excellent on-screen readability -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code&display=swap"
+    rel="stylesheet">
+
+  <!-- Icons: Font Awesome for iconography -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+
+  <!-- Embedded CSS: Polished Academic Theme v7 -->
+  <style>
+    /* =================================================================== */
+    /* == Polyphonia Demo - "Polished Academic" Theme v7 ================= */
+    /* =================================================================== */
+
+    /* --- 1. Global Variables & Base Setup --- */
+    :root {
+      --bg-color: #ffffff;
+      --content-bg: #ffffff;
+      --border-color: #e9ecef;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+
+      /* Primary (Purple) Highlight Color for Polyphonia & Key SA Finding */
+      --accent-purple: #a29cff;
+      --accent-purple-light: #cbbdff;
+      --highlight-purple-glow: rgba(162, 156, 255, 0.2);
+      --highlight-purple-bg: linear-gradient(145deg, rgba(162, 156, 255, 0.05), rgba(162, 156, 255, 0.01));
+      --highlight-purple-border: #dcdcff;
+
+      /* Secondary (Light Blue) Highlight Color for Titles & Key CA Finding */
+      --accent-blue: #87CEEB;
+      --accent-blue-light: #b0e0e6;
+      --highlight-blue-glow: rgba(135, 206, 235, 0.2);
+      --highlight-blue-bg: linear-gradient(145deg, rgba(135, 206, 235, 0.05), rgba(135, 206, 235, 0.01));
+      --highlight-blue-border: #cfe8ff;
+
+      --header-height: 70px;
+      /* For scroll-padding */
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: var(--header-height);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    /* --- 2. Layout & Containers --- */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .section {
+      padding: 4.5rem 0;
+    }
+
+    .section-separator {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    /* --- 3. Header & Typography --- */
+    .hero {
+      text-align: center;
+      padding: 4rem 0 3rem 0;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: var(--text-primary);
+      margin-bottom: 32px;
+    }
+
+    .project-title {
+      font-size: 4.5rem;
+      font-weight: 800;
+      letter-spacing: -2px;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(45deg, var(--text-primary), #495057);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .project-subtitle {
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: var(--text-secondary);
+      margin-top: 1rem;
+      margin-bottom: 2.5rem;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .section-title {
+      font-size: 2.75rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 1rem;
+      letter-spacing: -1px;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      margin-bottom: 3.5rem;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .abstract {
+      max-width: 800px;
+      margin: 2.5rem auto 0 auto;
+      /* Adjusted margin */
+      text-align: justify;
+      font-size: 1.1rem;
+      color: #343a40;
+    }
+
+    /* --- 4. Tab Navigation --- */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .tab-button {
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border-bottom: 3px solid transparent;
+      transition: color 0.3s, border-color 0.3s;
+      margin-bottom: -1px;
+      /* Overlap border */
+    }
+
+    .tab-button:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-button.active {
+      color: var(--accent-blue);
+      border-bottom-color: var(--accent-blue);
+    }
+
+    .tab-button.disabled {
+      color: #bdc3c7;
+      cursor: not-allowed;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* --- 5. Content Cards & Audio Players --- */
+    .content-group-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-top: 3rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #dee2e6;
+      color: var(--text-primary);
+      /* Changed to black */
+    }
+
+    .content-group-title:first-child {
+      margin-top: 0;
+    }
+
+    .example-card {
+      background-color: var(--content-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 2rem 2.5rem;
+      margin-bottom: 3rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+    .example-card:hover {
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      transform: translateY(-4px);
+    }
+
+    .example-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+    }
+
+    .example-title code {
+      font-family: 'Fira Code', monospace;
+      background-color: #e9ecef;
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: var(--accent-blue);
+      /* Kept as blue for distinction */
+      font-weight: 500;
+    }
+
+    .citation {
+      font-size: 1rem;
+      font-weight: 400;
+      color: var(--text-secondary);
+      margin-left: 12px;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+
+    .audio-item {
+      display: flex;
+      flex-direction: column;
+      background-color: #f8f9fa;
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    .audio-item-title {
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      letter-spacing: 0.5px;
+    }
+
+    .source-item {
+      grid-column: 1 / -1;
+      background-color: #e9ecef;
+      padding: 1.5rem;
+    }
+
+    .source-item .audio-item-title {
+      font-size: 1rem;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: auto;
+    }
+
+    /* --- 6. Highlighting & Before/After Layout --- */
+    .is-highlight-red {
+      background: var(--highlight-purple-bg);
+      border: 1px solid var(--highlight-purple-border);
+      box-shadow: 0 0 20px var(--highlight-purple-glow);
+    }
+
+    .is-highlight-red .audio-item-title,
+    .is-highlight-red .ablation-desc h5,
+    .is-highlight-red .direct-comparison-item .audio-item-title {
+      color: var(--accent-purple);
+    }
+
+    .is-highlight-red .fa-star {
+      margin-right: 8px;
+      color: var(--accent-purple-light);
+    }
+
+    .is-highlight-blue {
+      background: var(--highlight-blue-bg);
+      border: 1px solid var(--highlight-blue-border);
+      box-shadow: 0 0 20px var(--highlight-blue-glow);
+    }
+
+    .is-highlight-blue .audio-item-title,
+    .is-highlight-blue .ablation-desc h5 {
+      color: var(--text-primary);
+    }
+
+    .is-highlight-blue .fa-star {
+      margin-right: 8px;
+      color: var(--accent-blue-light);
+    }
+
+    .direct-comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .direct-comparison-arrow {
+      font-size: 2.5rem;
+      color: var(--accent-purple-light);
+      text-align: center;
+    }
+
+    .direct-comparison-item .audio-item-title {
+      font-size: 1rem;
+    }
+
+    /* Custom grid for 4x2 layout */
+    .methods-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(4, auto);
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .methods-grid .audio-item {
+      margin-bottom: 0;
+    }
+
+    .source-audio {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .source-audio audio {
+      margin-top: 1rem;
+    }
+
+    .prompt-text {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+
+    .prompt-text p {
+      margin: 0;
+      font-size: 1rem;
+      color: var(--text-primary);
+    }
+
+    /* --- 7. Ablation Study Layout --- */
+    .ablation-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .ablation-item {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      align-items: center;
+      gap: 2rem;
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      background-color: #f8f9fa;
+      transition: all 0.3s ease;
+    }
+
+    .ablation-desc h5 {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 0.25rem 0;
+      font-size: 1rem;
+    }
+
+    .ablation-desc p {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    /* --- 8. Responsive Design --- */
+    @media (max-width: 992px) {
+      .ablation-item {
+        grid-template-columns: 240px 1fr;
+        gap: 1.5rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .project-title {
+        font-size: 3rem;
+      }
+
+      .project-subtitle {
+        font-size: 1.25rem;
+      }
+
+      .section-title {
+        font-size: 2.25rem;
+      }
+
+      .ablation-item,
+      .direct-comparison-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .ablation-desc {
+        text-align: left;
+      }
+
+      .direct-comparison-arrow {
+        transform: rotate(90deg);
+        margin: 1rem 0;
+      }
+
+      .methods-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(4, auto);
+      }
+    }
+
+    .resource-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin: 24px 0;
+    }
+
+    .resource-links a {
+      display: inline-flex;
+      align-items: center;
+      padding: 12px 24px;
+      border: 2px solid var(--accent-blue);
+      border-radius: 30px;
+      color: var(--accent-blue);
+      text-decoration: none;
+      font-weight: 500;
+      transition: background-color 0.3s, color 0.3s, transform 0.3s;
+      background-color: transparent;
+    }
+
+    .resource-links a:hover {
+      background-color: var(--accent-blue);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .resource-links i {
+      margin-right: 8px;
+    }
+
+    .hero-figure {
+      text-align: center;
+      margin: 32px 0 24px;
+    }
+
+    .hero-figure img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .hero-figure figcaption {
+      margin-top: 30px;
+      font-size: 1.3rem;
+      font-weight: 500;
+      color: #101010;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="container">
+      <h1>Polyphonia: Training-Free Context-Aware Music Editing with Acoustic-Informed Attention Calibration</h1>
+      <p>Under Review</p>
+      <figure class="hero-figure">
+        <img src="static/images/Overview_of_Polyphonia.png" alt="Overview of Polyphonia">
+        <figcaption>Figure 1: Overview of Polyphonia.</figcaption>
+      </figure>
+    </div>
+  </header>
+
+  <!-- Abstract Section -->
+  <section class="section section-separator" style="padding-top: 0; padding-bottom: 4.5rem;">
+    <div class="container">
+      <h2 class="section-title">Abstract</h2>
+      <p class="abstract">
+        The advancement of diffusion-based text-to-music generation has opened new avenues for zero-shot music editing. However, existing methods fail to achieve context-aware editing, which requires altering specific stems while strictly preserving the background accompaniment. This limitation severely hinders practical application, since real-world production necessitates precise manipulation of components within dense mixtures. Our key finding is that, while vanilla cross-attention captures semantic intent, it lacks the spectral resolution to strictly localize targets in dense mixtures, leading to boundary leakage. To resolve this dilemma, we propose Polyphonia, a training-free editing framework with Acoustic-Informed Attention Calibration. Rather than relying solely on diffuse semantic attention, Polyphonia leverages a probabilistic acoustic prior to establish coarse boundaries, enabling background context preserved precise semantic synthesis. For evaluation, we propose PolyEvalPrompts, a standardized prompt set with 1,170 context-aware music editing tasks. Specifically, Polyphonia achieves an increase of 15.5% in target alignment compared to baselines, while maintaining competitive music fidelity and background integrity.
+      </p>
+    </div>
+  </section>
+
+  <!-- Comparisons with Baselines -->
+  <main class="section section-separator" id="results">
+    <div class="container">
+      <h2 class="section-title">Comparisons with Baselines</h2>
+      <div class="tabs">
+        <button class="tab-button active" onclick="openTab(event, 'musdb18')">MUSDB18-HQ</button>
+        <button class="tab-button" onclick="openTab(event, 'musicdelta')">MusicDelta</button>
+      </div>
+
+      <!-- Tab Content: MUSDB18-HQ -->
+      <div id="musdb18" class="tab-content active">
+        <div class="example-card">
+          <h4 class="example-title"><code>Guitar To Violin</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of soulful male vocals, deep bass, distorted guitar and punchy drums.</p>
+            <p><strong>Target Prompt:</strong> A recording of soulful male vocals, deep bass, smooth violin and punchy drums.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MUSDB18-HQ/Angels_In_Amplifiers_-_Im_Alright/source/mix_1_2_3.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Angels_In_Amplifiers_-_Im_Alright/our/mixture.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Angels_In_Amplifiers_-_Im_Alright/sdedit-140/mix_1_2_3.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Angels_In_Amplifiers_-_Im_Alright/musicgen/mix_1_2_3.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Angels_In_Amplifiers_-_Im_Alright/magus/magus.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Angels_In_Amplifiers_-_Im_Alright/ddpm-100/mix_1_2_3.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Angels_In_Amplifiers_-_Im_Alright/ddim-120/mix_1_2_3.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Angels_In_Amplifiers_-_Im_Alright/steermusic/mix_1_2_3.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Angels_In_Amplifiers_-_Im_Alright/melodia_swb0_new/mix_1_2_3.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Drums To Electronic</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of a vocals melody, a funky bass, a clean electric guitar and tight drums.</p>
+            <p><strong>Target Prompt:</strong> A recording of a vocals melody, a funky bass, a clean electric guitar and crisp electronic drums.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MUSDB18-HQ/BKS_-_Bulldozer/drums2electronic/source/4.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/BKS_-_Bulldozer/drums2electronic/our/4.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/BKS_-_Bulldozer/drums2electronic/sdedit-140/4.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/BKS_-_Bulldozer/drums2electronic/musicgen/4.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/BKS_-_Bulldozer/drums2electronic/magus/4.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/BKS_-_Bulldozer/drums2electronic/ddpm-100/4.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/BKS_-_Bulldozer/drums2electronic/ddim-120/4.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/BKS_-_Bulldozer/drums2electronic/steermusic/4.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/BKS_-_Bulldozer/drums2electronic/melodia_swb0_new/4.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Piano To Organ</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of soulful male vocals, a deep bass, a soft piano and ambient synth pad. </p>
+            <p><strong>Target Prompt:</strong> A recording of soulful male vocals, a deep bass, a warm organ and ambient synth pad. </p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MUSDB18-HQ/Carlos_Gonzalez_-_A_Place_For_Us/piano2organ/source/6.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Carlos_Gonzalez_-_A_Place_For_Us/piano2organ/our/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Carlos_Gonzalez_-_A_Place_For_Us/piano2organ/sdedit-140/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Carlos_Gonzalez_-_A_Place_For_Us/piano2organ/musicgen/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Carlos_Gonzalez_-_A_Place_For_Us/piano2organ/magus/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Carlos_Gonzalez_-_A_Place_For_Us/piano2organ/ddpm-100/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Carlos_Gonzalez_-_A_Place_For_Us/piano2organ/ddim-120/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Carlos_Gonzalez_-_A_Place_For_Us/piano2organ/steermusic/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Carlos_Gonzalez_-_A_Place_For_Us/piano2organ/melodia_swb0_new/6.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Bass To Upright</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of a soulful female vocals, a deep bass, a clean electric guitar, a warm acoustic guitar and punchy drums.</p>
+            <p><strong>Target Prompt:</strong> A recording of a soulful female vocals, an upright bass, a clean electric guitar, a warm acoustic guitar and punchy drums.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/bass2upright/source/5.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/bass2upright/our/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/bass2upright/sdedit-140/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/bass2upright/musicgen/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/bass2upright/magus/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/bass2upright/ddpm-100/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/bass2upright/ddim-120/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/bass2upright/steermusic/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/bass2upright/melodia_swb0_new/5.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Vocals To Saxophone</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of a soulful female vocals, a deep bass, a clean electric guitar, a warm acoustic guitar and punchy drums.</p>
+            <p><strong>Target Prompt:</strong> A recording of a smooth saxophone, a deep bass, a clean electric guitar, a warm acoustic guitar and punchy drums.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/vocals2saxophone/source/5.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/vocals2saxophone/our/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/vocals2saxophone/sdedit-140/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/vocals2saxophone/musicgen/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/vocals2saxophone/magus/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/vocals2saxophone/ddpm-100/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/vocals2saxophone/ddim-120/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/vocals2saxophone/steermusic/5.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Cristina_Vane_-_So_Easy/vocals2saxophone/melodia_swb0_new/5.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Vocals To Cello</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of soft, emotive female vocals, a clean electric guitar, a soft fingerpicked acoustic guitar and gentle drums.</p>
+            <p><strong>Target Prompt:</strong> A recording of a warm cello, a clean electric guitar, a soft fingerpicked acoustic guitar and gentle drums.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MUSDB18-HQ/Lyndsey_Ollard_-_Catching_Up/vocals2cello/source/2.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Lyndsey_Ollard_-_Catching_Up/vocals2cello/our/2.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Lyndsey_Ollard_-_Catching_Up/vocals2cello/sdedit-140/2.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Lyndsey_Ollard_-_Catching_Up/vocals2cello/musicgen/2.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Lyndsey_Ollard_-_Catching_Up/vocals2cello/magus/2.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Lyndsey_Ollard_-_Catching_Up/vocals2cello/ddpm-100/2.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Lyndsey_Ollard_-_Catching_Up/vocals2cello/ddim-120/2.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Lyndsey_Ollard_-_Catching_Up/vocals2cello/steermusic/2.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Lyndsey_Ollard_-_Catching_Up/vocals2cello/melodia_swb0_new/2.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Guitar To Piano</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of soulful female vocals, deep bass, a clean electric guitar and punchy drums.</p>
+            <p><strong>Target Prompt:</strong> A recording of soulful female vocals, deep bass, a bright piano and punchy drums.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2piano/source/10.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2piano/our/10.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2piano/sdedit-140/10.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2piano/musicgen/10.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2piano/magus/10.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2piano/ddpm-100/10.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2piano/ddim-120/10.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2piano/steermusic/10.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2piano/melodia_swb0_new/10.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Guitar To Ukulele</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of soulful female vocals, deep bass, a clean electric guitar and punchy drums.</p>
+            <p><strong>Target Prompt:</strong> A recording of soulful female vocals, deep bass, a cheerful ukulele and punchy drums.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2ukulele/source/21.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2ukulele/our/21.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2ukulele/sdedit-140/21.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2ukulele/musicgen/21.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2ukulele/magus/21.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2ukulele/ddpm-100/21.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2ukulele/ddim-120/21.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2ukulele/steermusic/21.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Nerve_9_-_Pray_For_The_Rain/guitar2ukulele/melodia_swb0_new/21.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Electronic Guitar To Acoustic Guitar</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of a smooth and sultry female vocal, a deep bass guitar, a clean electric guitar and punchy drums.</p>
+            <p><strong>Target Prompt:</strong> A recording of a smooth and sultry female vocal, a deep bass guitar, a bright acoustic guitar and punchy drums.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/guitar2acoustic/source/6.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/guitar2acoustic/our/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/guitar2acoustic/sdedit-140/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/guitar2acoustic/musicgen/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/guitar2acoustic/magus/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/guitar2acoustic/ddpm-100/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/guitar2acoustic/ddim-120/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/guitar2acoustic/steermusic/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/guitar2acoustic/melodia_swb0_new/6.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Vocals To Flute</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of a smooth and sultry female vocal, a deep bass guitar, a clean electric guitar and punchy drums.</p>
+            <p><strong>Target Prompt:</strong> A recording of a lush flute, a deep bass guitar, a clean electric guitar and punchy drums.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/vocals2flute/source/6.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/vocals2flute/our/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/vocals2flute/sdedit-140/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/vocals2flute/musicgen/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/vocals2flute/magus/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/vocals2flute/ddpm-100/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/vocals2flute/ddim-120/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/vocals2flute/steermusic/6.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MUSDB18-HQ/Signe_Jakobsen_-_What_Have_You_Done_To_Me/vocals2flute/melodia_swb0_new/6.wav"></audio>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Tab Content: MusicDelta -->
+      <div id="musicdelta" class="tab-content">
+        <div class="example-card">
+          <h4 class="example-title"><code>Saxophone To Organ</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of a smooth saxophone solo, a fingered electric bass and a standard drum kit.</p>
+            <p><strong>Target Prompt:</strong> A recording of a organ melody, a fingered electric bass and a standard drum kit.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MusicDelta/MusicDelta_FunkJazz/saxophone2organ/source/all.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_FunkJazz/saxophone2organ/our/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_FunkJazz/saxophone2organ/sdedit-140/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_FunkJazz/saxophone2organ/musicgen/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_FunkJazz/saxophone2organ/magus/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_FunkJazz/saxophone2organ/ddpm-100/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_FunkJazz/saxophone2organ/ddim-120/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_FunkJazz/saxophone2organ/steermusic/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_FunkJazz/saxophone2organ/melodia_swb0_new/all.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>String section To Guitar</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of a light bouncy string section, bright clear woodwind solos and rhythmic percussion.</p>
+            <p><strong>Target Prompt:</strong> A recording of a guitar, bright clear woodwind solos and rhythmic percussion.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MusicDelta/MusicDelta_GriegTrolltog/string_section2guitar/source/all.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_GriegTrolltog/string_section2guitar/our/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_GriegTrolltog/string_section2guitar/sdedit-140/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_GriegTrolltog/string_section2guitar/musicgen/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_GriegTrolltog/string_section2guitar/magus/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_GriegTrolltog/string_section2guitar/ddpm-100/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_GriegTrolltog/string_section2guitar/ddim-120/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_GriegTrolltog/string_section2guitar/steermusic/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_GriegTrolltog/string_section2guitar/melodia_swb0_new/all.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Vocals To Violin</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of smooth, melodic male, walking bassline, rhythmic strumming and steady backbeat.</p>
+            <p><strong>Target Prompt:</strong> A recording of a violin, rhythmic strumming, walking bassline and steady backbeat.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MusicDelta/MusicDelta_Reggae/vocals2violin/source/all.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Reggae/vocals2violin/our/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Reggae/vocals2violin/sdedit-140/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Reggae/vocals2violin/musicgen/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Reggae/vocals2violin/magus/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Reggae/vocals2violin/ddpm-100/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Reggae/vocals2violin/ddim-120/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Reggae/vocals2violin/steermusic/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Reggae/vocals2violin/melodia_swb0_new/all.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Vocals To Cello</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of a soft breathy vocal, a steady, walking bassline, a arpeggiated guitar melody and a simple, steady backbeat.</p>
+            <p><strong>Target Prompt:</strong> A recording of a cello, a steady, walking bassline, a arpeggiated guitar melody and a simple, steady backbeat.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MusicDelta/MusicDelta_Rockabilly/vocals2cello/source/all.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Rockabilly/vocals2cello/our/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Rockabilly/vocals2cello/sdedit-140/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Rockabilly/vocals2cello/musicgen/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Rockabilly/vocals2cello/magus/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Rockabilly/vocals2cello/ddpm-100/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Rockabilly/vocals2cello/ddim-120/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Rockabilly/vocals2cello/steermusic/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Rockabilly/vocals2cello/melodia_swb0_new/all.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Piano To Harp</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of a melodic piano, a walking bass line and a soft brushed drum beat.</p>
+            <p><strong>Target Prompt:</strong> A recording of a melodic harp, a walking bass line and a soft brushed drum beat.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MusicDelta/MusicDelta_SwingJazz/piano2harp/source/all.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_SwingJazz/piano2harp/our/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_SwingJazz/piano2harp/sdedit-140/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_SwingJazz/piano2harp/musicgen/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_SwingJazz/piano2harp/magus/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_SwingJazz/piano2harp/ddpm-100/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_SwingJazz/piano2harp/ddim-120/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_SwingJazz/piano2harp/steermusic/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_SwingJazz/piano2harp/melodia_swb0_new/all.wav"></audio>
+            </div>
+          </div>
+        </div>
+        <div class="example-card">
+          <h4 class="example-title"><code>Guitar To Piano</code></h4>
+          <div class="prompt-text">
+            <p><strong>Source Description:</strong> A recording of a distorted electric guitar melody, a solid bass line and driving energetic drums.</p>
+            <p><strong>Target Prompt:</strong> A recording of a rapid piano, a solid bass line and driving energetic drums.</p>
+          </div>
+          <div class="source-audio">
+            <h5>Source Audio</h5>
+            <audio controls src="static/audio/MusicDelta/MusicDelta_Zeppelin/guitar2piano/source/all.wav"></audio>
+          </div>
+          <div class="methods-grid">
+            <div class="audio-item is-highlight-red">
+              <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Zeppelin/guitar2piano/our/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SDEdit</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Zeppelin/guitar2piano/sdedit-140/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicGen</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Zeppelin/guitar2piano/musicgen/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">MusicMagus</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Zeppelin/guitar2piano/magus/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDPM-Friendly</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Zeppelin/guitar2piano/ddpm-100/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">DDIM Inversion</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Zeppelin/guitar2piano/ddim-120/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">SteerMusic</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Zeppelin/guitar2piano/steermusic/all.wav"></audio>
+            </div>
+            <div class="audio-item ">
+              <h5 class="audio-item-title">Melodia</h5>
+              <audio controls src="static/audio/MusicDelta/MusicDelta_Zeppelin/guitar2piano/melodia_swb0_new/all.wav"></audio>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Editing Paradigm -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-title">Editing Paradigm (Holistic vs. Sep-Remix)</h2>
+      <p class="section-subtitle">Ablation studies demonstrating the effectiveness of holistic editing versus separate remix approaches.</p>
+
+      <div class="example-card">
+        <h4 class="example-title"><code>Vocals to Violin</code></h4>
+        <div class="prompt-text">
+          <p><strong>Source Description:</strong> A recording of soulful male vocals, deep bass, a melodic piano and punchy drums.</p>
+          <p><strong>Target Prompt:</strong> A recording of a smooth violin, deep bass, a melodic piano and punchy drums.</p>
+        </div>
+        <div class="source-audio">
+          <h5>Source Audio</h5>
+          <audio controls src="static/audio/Single_Edit/vocals2violin/source/mixture.wav"></audio>
+        </div>
+        <div class="methods-grid">
+          <div class="audio-item is-highlight-red">
+            <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+            <audio controls src="static/audio/Single_Edit/vocals2violin/our/mixture.wav"></audio>
+          </div>
+          <div class="audio-item">
+            <h5 class="audio-item-title">DDPM</h5>
+            <audio controls src="static/audio/Single_Edit/vocals2violin/ddpm-120/mixture.wav"></audio>
+          </div>
+          <div class="audio-item">
+            <h5 class="audio-item-title">Melodia</h5>
+            <audio controls src="static/audio/Single_Edit/vocals2violin/melodia/mixture.wav"></audio>
+          </div>
+          <!-- Add more if available -->
+        </div>
+      </div>
+
+      <div class="example-card">
+        <h4 class="example-title"><code>Electronic Guitar to Acoustic Guitar</code></h4>
+        <div class="prompt-text">
+          <p><strong>Source Description:</strong> A recording of a smooth and sultry male vocal, a deep bass guitar, a clean electric guitar and punchy drums.</p>
+          <p><strong>Target Prompt:</strong> A recording of a smooth and sultry male vocal, a deep bass guitar, a bright acoustic guitar and punchy drums.</p>
+        </div>
+        <div class="source-audio">
+          <h5>Source Audio</h5>
+          <audio controls src="static/audio/Single_Edit/guitar2acoustic/source/mixture.wav"></audio>
+        </div>
+        <div class="methods-grid">
+          <div class="audio-item is-highlight-red">
+            <h5 class="audio-item-title"><i class="fas fa-star"></i>Polyphonia (Ours)</h5>
+            <audio controls src="static/audio/Single_Edit/guitar2acoustic/our/mixture.wav"></audio>
+          </div>
+          <div class="audio-item">
+            <h5 class="audio-item-title">DDPM</h5>
+            <audio controls src="static/audio/Single_Edit/guitar2acoustic/ddpm-120/mixture.wav"></audio>
+          </div>
+          <div class="audio-item">
+            <h5 class="audio-item-title">Melodia</h5>
+            <audio controls src="static/audio/Single_Edit/guitar2acoustic/melodia/mixture.wav"></audio>
+          </div>
+          <!-- Add more if available -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // JavaScript for Tab functionality
+    function openTab(evt, tabName) {
+      let i, tabcontent, tablinks;
+      tabcontent = document.getElementsByClassName("tab-content");
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      tablinks = document.getElementsByClassName("tab-button");
+      for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+      document.getElementById(tabName).style.display = "block";
+      evt.currentTarget.className += " active";
+    }
+
+    // Ensure the first tab is active on page load
+    document.addEventListener("DOMContentLoaded", function () {
+      document.getElementsByClassName("tab-button")[0].click();
+    });
+  </script>
+
+</body>
+
+</html>

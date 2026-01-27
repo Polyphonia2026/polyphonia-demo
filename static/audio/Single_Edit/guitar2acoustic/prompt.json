@@ -1,0 +1,10 @@
+{
+    "guitar2acoustic": {
+        "Original Prompt": "A recording of a smooth and sultry male vocal, a deep bass guitar, a clean electric guitar and punchy drums.",
+        "Baseline Prompt": "A recording of a smooth and sultry male vocal, a deep bass guitar, a bright acoustic guitar and punchy drums.",
+        "Vocals Softmask Prompt": "a smooth and sultry male vocal",
+        "Bass Softmask Prompt": "a deep bass guitar",
+        "Others Softmask Prompt": "a bright acoustic guitar",
+        "Drums Softmask Prompt": "punchy drums"
+    }
+}
