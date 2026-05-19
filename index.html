@@ -95,6 +95,33 @@
       margin-bottom: 32px;
     }
 
+    /* Author Information Styles */
+    .author-list {
+      font-size: 1.3rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .affiliation {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .conference {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #495057;
+      margin-bottom: 0.5rem;
+    }
+
+    .author-notes {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
     .project-title {
       font-size: 4.5rem;
       font-weight: 800;
@@ -501,7 +528,21 @@
   <header class="hero">
     <div class="container">
       <h1>Polyphonia: Training-Free Context-Aware Music Editing with Acoustic-Informed Attention Calibration</h1>
-      <p>Under Review</p>
+      
+      <!-- Added Author List -->
+      <div class="author-list">
+        Haowen Li<sup>1, *</sup>, Tianxiang Li<sup>1, *</sup>, Yi Yang<sup>1</sup>, Boyu Cao<sup>1</sup>, Qi Liu<sup>1, &dagger;</sup>
+      </div>
+      <div class="affiliation">
+        <sup>1</sup> School of Future Technology, South China University of Technology, Guangzhou, China.
+      </div>
+      <div class="conference">
+        ICML 2026
+      </div>
+      <div class="author-notes">
+        <sup>*</sup> Equal Contribution &nbsp;&nbsp; <sup>&dagger;</sup> Corresponding Author
+      </div>
+      
       <figure class="hero-figure">
         <img src="static/images/Overview_of_Polyphonia.png" alt="Overview of Polyphonia">
         <figcaption>Figure 1: Overview of Polyphonia.</figcaption>
